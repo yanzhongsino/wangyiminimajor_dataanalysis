@@ -1,0 +1,231 @@
+
+# coding: utf-8
+
+# In[ ]:
+
+
+'''
+【项目04】  视频网站数据清洗整理和结论研究
+
+作业要求：
+1、数据清洗 - 去除空值
+要求：创建函数
+提示：fillna方法填充缺失数据，注意inplace参数
+
+2、数据清洗 - 时间标签转化
+要求：
+① 将时间字段改为时间标签
+② 创建函数
+提示：
+需要将中文日期转化为非中文日期，例如 2016年5月24日 → 2016.5.24
+
+3、问题1 分析出不同导演电影的好评率，并筛选出TOP20
+要求：
+① 计算统计出不同导演的好评率，不要求创建函数
+② 通过多系列柱状图，做图表可视化
+提示：
+① 好评率 = 好评数 / 评分人数
+② 可自己设定图表风格
+
+4、问题2 统计分析2001-2016年每年评影人数总量
+要求：
+① 计算统计出2001-2016年每年评影人数总量，不要求创建函数
+② 通过面积图，做图表可视化，分析每年人数总量变化规律
+③ 验证是否有异常值（极度异常）
+④ 创建函数分析出数据外限最大最小值）
+⑤ 筛选查看异常值 → 是否异常值就是每年的热门电影？
+提示：
+① 通过箱型图验证异常值情况
+② 通过quantile(q=0.5)方法，得到四分位数
+③ IQR=Q3-Q1
+④ 外限：最大值区间Q3+3IQR,最小值区间Q1-3IQR （IQR=Q3-Q1）
+⑤ 可自己设定图表风格
+
+'''
+
+
+# In[ ]:
+
+
+'''作业要求：
+1、数据清洗 - 去除空值
+要求：创建函数
+提示：fillna方法填充缺失数据，注意inplace参数
+'''
+
+
+# In[1]:
+
+
+import numpy as np
+import pandas as pd
+import matplotlib.pyplot as plt
+get_ipython().run_line_magic('matplotlib', 'inline')
+
+# coding:utf-8
+plt.rcParams['font.sans-serif']=['SimHei'] #用来正常显示中文标签
+
+
+# In[2]:
+
+
+import os
+os.chdir('E:/IT/网易微专业_数据分析师（python）/Python数据分析师微专业_项目资料/项目04视频网站数据清洗整理和结论研究/')
+
+data1 = pd.read_csv('爱奇艺视频数据.csv',engine='python')
+def cleanna(x):
+    for i in x.columns:
+        if x[i].dtypes == 'object':
+            x[i].fillna('缺失数据',inplace=True)
+        else:
+            x[i].fillna(0,inplace=True)
+            
+cleanna(data1)
+print(data1.head())
+
+
+# In[ ]:
+
+
+'''
+2、数据清洗 - 时间标签转化
+要求：
+① 将时间字段改为时间标签
+② 创建函数
+提示：
+需要将中文日期转化为非中文日期，例如 2016年5月24日 → 2016.5.24
+'''
+
+
+# In[3]:
+
+
+def to_date(x,col):
+    for i in col:
+        x[i] = x[i].str.replace('年','.')
+        x[i] = x[i].str.replace('月','.')
+        x[i] = x[i].str.replace('日','.')
+        
+
+to_date(data1,['数据获取日期'])
+
+data1['数据获取日期'] = pd.to_datetime(data1['数据获取日期'])
+print(data1.head())
+
+
+# In[ ]:
+
+
+'''3、问题1 分析出不同导演电影的好评率，并筛选出TOP20
+要求：
+① 计算统计出不同导演的好评率，不要求创建函数
+② 通过多系列柱状图，做图表可视化
+提示：
+① 好评率 = 好评数 / 评分人数
+② 可自己设定图表风格'''
+
+
+# In[5]:
+
+
+g1 = data1.groupby('导演').sum()[['好评数','评分人数']]
+# print(g1.head())
+g1['好评率']=g1['好评数']/g1['评分人数']
+dy = g1.sort_values('好评率',ascending=False)[:20]
+# dy['导演']=dy.index
+print(dy)
+
+dy['好评率'].plot(kind='bar',
+        colormap='BuGn_r',
+#         edgecolor='black',
+        figsize=(15,6),
+        alpha = 0.6,
+        grid =True,
+        rot = 0,
+        ylim = [0.97,1.0])
+
+
+# In[ ]:
+
+
+'''4、问题2 统计分析2001-2016年每年评影人数总量
+要求：
+① 计算统计出2001-2016年每年评影人数总量，不要求创建函数
+② 通过面积图，做图表可视化，分析每年人数总量变化规律
+③ 验证是否有异常值（极度异常）
+④ 创建函数分析出数据外限最大最小值）
+⑤ 筛选查看异常值 → 是否异常值就是每年的热门电影？
+提示：
+① 通过箱型图验证异常值情况
+② 通过quantile(q=0.5)方法，得到四分位数
+③ IQR=Q3-Q1
+④ 外限：最大值区间Q3+3IQR,最小值区间Q1-3IQR （IQR=Q3-Q1）
+⑤ 可自己设定图表风格
+
+'''
+
+
+# In[6]:
+
+
+# print(data1.head())
+pu1 = data1[['上映年份','评分人数']].groupby('上映年份').sum()
+pu1 = pu1[pu1.index != 0]
+# print(pu1)
+pu1.loc[2001:].plot.area(figsize=(12,6),
+              colormap = 'Greens_r',
+              grid = True,
+              title = '每年影评人数总量',
+              alpha = 0.6)
+plt.xticks(range(2001,2017))
+
+# print(data1.head())
+pu2 = data1[['整理后剧名','上映年份','评分人数']].drop_duplicates()
+pua = pu2[['整理后剧名','上映年份']].groupby('整理后剧名').max()
+pub = pu2[['整理后剧名','评分人数']].groupby('整理后剧名').sum()
+pu3 = pd.merge(pua,pub,left_index=True,right_index=True,how='inner')
+pu3 = pu3[pu3['上映年份']>2000].sort_values('上映年份',ascending=False)
+# color = dict(boxes='DarkGreen', whiskers='DarkOrange', medians='DarkBlue', caps='Gray')
+
+plt.figure(figsize=(10,4))
+f = pu3.boxplot(column=['评分人数'],
+               by = '上映年份',
+               figsize =(12,6),
+               fontsize = 10,               
+               sym = 'x',  # 异常点形状，参考marker
+               vert = True,  # 是否垂直
+               whis = 3,  # IQR
+               patch_artist = True,  # 上下四分位框内是否填充，True为填充
+               meanline = False,
+               showmeans=True,  # 是否有均值线及其形状
+               showbox = True,  # 是否显示箱线
+               showcaps = True,  # 是否显示边缘线
+               showfliers = True,  # 是否显示异常值
+               notch = False,  # 中间箱体是否缺口
+               return_type='dict'  # 返回类型为字典
+              ) 
+plt.title('评影人数箱型图')
+
+
+# In[7]:
+
+
+def data_error(df,col):
+    q1 = df[col].quantile(q=0.25)  # 上四分位数
+    q3 = df[col].quantile(q=0.75)  # 下四分位数
+    iqr = q3 - q1   # IQR
+    tmax = q3 + 3 * iqr  # 外限最大值
+    tmin = q1 - 3 * iqr  # 外限最小值
+    return(tmax,tmin)
+# 创建函数，得到外限最大最小值
+
+
+for i in range(2001,2017):
+    datayear = pu3[pu3['上映年份'] == i]  # 筛选该年度的数据
+    print('%i年有%i条数据' % (i,len(datayear)))  # 查看每年的数据量
+    t = data_error(datayear,'评分人数')  # 得到外限最大最小值
+    #print(t)
+    print(datayear[datayear['评分人数'] > t[0]])  # 查看评分人数大于外限最大值的异常值
+    print('-------\n')
+# 查看异常值信息
+
