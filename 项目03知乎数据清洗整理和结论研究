@@ -1,0 +1,167 @@
+
+# coding: utf-8
+
+# In[ ]:
+
+
+'''
+【项目03】  知乎数据清洗整理和结论研究
+
+作业要求：
+1、数据清洗 - 去除空值
+要求：创建函数
+提示：fillna方法填充缺失数据，注意inplace参数
+
+2、问题1 知友全国地域分布情况，分析出TOP20
+要求：
+① 按照地域统计 知友数量、知友密度（知友数量/城市常住人口），不要求创建函数
+② 知友数量，知友密度，标准化处理，取值0-100，要求创建函数
+③ 通过多系列柱状图，做图表可视化
+提示：
+① 标准化计算方法 = (X - Xmin) / (Xmax - Xmin)
+② 可自行设置图表风格
+
+3、问题2 知友全国地域分布情况，分析出TOP20
+要求：
+① 按照学校（教育经历字段） 统计粉丝数（‘关注者’）、关注人数（‘关注’），并筛选出粉丝数TOP20的学校，不要求创建函数
+② 通过散点图 → 横坐标为关注人数，纵坐标为粉丝数，做图表可视化
+③ 散点图中，标记出平均关注人数（x参考线），平均粉丝数（y参考线）
+提示：
+① 可自行设置图表风格
+
+'''
+
+
+# In[1]:
+
+
+import numpy as np
+import pandas as pd
+
+
+# In[3]:
+
+
+# 1.数据清洗 -去除空值
+import os
+os.chdir('E:/IT/网易微专业_数据分析师（python）/Python数据分析师微专业_项目资料/项目03知乎数据清洗整理和结论研究/')
+
+data=pd.read_csv('知乎数据_201701_Y.csv',engine = 'python')
+
+# print(data.head(20),type(data))
+def fillna_1(x):
+    for n,p in x.groupby(x.dtypes,axis=1):        
+        if n == 'object':
+            p.fillna('缺失数据',inplace=True)
+            x.update(p)
+#             print(p)
+        else:
+            p.fillna(0,inplace=True)
+            x.update(p)
+#             print(x)
+
+
+# data[['职业1','职业2','个人简介','居住地','所在行业','教育经历','职业经历']].fillna("缺失数据",inplace=True)
+# data[['收藏的关注夹','关注','关注者','关注的问题','关注的话题','关注的专栏','职业经历']].fillna(np.int(0),inplace=True)
+# data[['回答','提问','收藏']].fillna(np.float(0),inplace=True)
+fillna_1(data)
+print(data.head(10))
+
+
+# In[4]:
+
+
+# 2、问题1 知友全国地域分布情况，分析出TOP20
+df1=data.groupby('居住地').count()
+# print(df1,type(df1))
+
+data2 = pd.read_csv('六普常住人口数.csv',engine='python')
+# print(data2,type(data2))
+data2['地区']=data2['地区'].str[:-1]
+# print(data2.head())
+df2 = pd.merge(df1,data2,left_index=True,right_on='地区',how='inner')
+# print(df2.head(20))
+
+top=df2[['_id','地区','常住人口']].sort_values(['_id'],ascending=False)[0:20]
+top['counts']=top['_id']
+top['density']=top['_id']/top['常住人口']
+# print(top)
+
+def standard(x):
+    x['知友数量']=(x['counts']-x['counts'].min())/(x['counts'].max()-x['counts'].min())*100
+    x['知友密度']=(x['density']-x['density'].min())/(x['density'].max()-x['density'].min())*100
+
+standard(top)
+# top.index=top['地区']
+top.drop(['_id','常住人口','counts','density'],axis=1,inplace=True)
+# top.drop(['地区'],axis=0,inplace=True)
+print(top.head())
+
+
+# In[5]:
+
+
+# 3、图表可视化
+import matplotlib.pyplot as plt
+get_ipython().run_line_magic('matplotlib', 'inline')
+# coding:utf-8
+plt.rcParams['font.sans-serif']=['SimHei'] #用来正常显示中文标签
+plt.rcParams['axes.unicode_minus']=False #用来正常显示负号
+# print(top)
+
+top.plot(x=top['地区'],
+         kind='bar',
+         alpha=0.5,
+         width = 0.8,
+         figsize=(15,6),
+         colormap='Blues_r',
+         edgecolor = 'black',
+         rot=0,
+         grid = True,         
+         title='知友主要地域分布图')
+
+
+
+# In[ ]:
+
+
+'''
+4、问题2 知友全国地域分布情况，分析出TOP20
+要求：
+① 按照学校（教育经历字段） 统计粉丝数（‘关注者’）、关注人数（‘关注’），并筛选出粉丝数TOP20的学校，不要求创建函数
+② 通过散点图 → 横坐标为关注人数，纵坐标为粉丝数，做图表可视化
+③ 散点图中，标记出平均关注人数（x参考线），平均粉丝数（y参考线）
+'''
+
+
+# In[6]:
+
+
+df3 = data.groupby('教育经历').sum().drop(['缺失数据'])
+# print(df3.head())
+df4 = df3[['关注','关注者']].sort_values('关注者',ascending=False)[:20]
+# print(df4)
+df4.rename(columns={'关注':'关注人数','关注者':'粉丝数'},inplace=True)
+print(df4)
+plt.figure(figsize=(15,10))
+plt.scatter(df4['关注人数'],
+            df4['粉丝数'],
+            label = '粉丝数TOP20的学校',
+            alpha=0.6,
+            marker='o',
+            s = df4['粉丝数']/1000,
+            c = df4['粉丝数'],
+            edgecolors='black',           
+            cmap='Blues')
+
+plt.axvline(df4['关注人数'].mean(),hold=None,label="平均关注人数：%i人" % df4['关注人数'].mean(),color='b',linestyle="--",alpha=0.6)  # 添加x轴参考线
+plt.axhline(df4['粉丝数'].mean(),hold=None,label="平均粉丝数：%i人" % df4['粉丝数'].mean(),color='b',linestyle="--",alpha=0.6)   # 添加y轴参考线
+
+plt.xlabel('关注人数')
+plt.ylabel('粉丝数')
+plt.grid(True)
+plt.legend()
+
+for i,j,k in zip(df4['关注人数'],df4['粉丝数'],df4.index):
+    plt.text(i+500,j+1000,k,color='black')
+
