@@ -1,0 +1,77 @@
+'''
+【项目01】  商铺数据加载及存储
+
+作业要求：
+1、成功读取“商铺数据.csv”文件
+2、解析数据，存成列表字典格式：[{'var1':value1,'var2':value2,'var3':values,...},...,{}]
+3、数据清洗：
+① comment，price两个字段清洗成数字
+② 清除字段缺失的数据
+③ commentlist拆分成三个字段，并且清洗成数字
+4、结果存为.pkl文件
+
+'''
+
+m = []
+n = 0
+j = 0
+import re
+path = 'E:/IT/网易微专业_数据分析师（python）/Python数据分析师微专业_项目资料/项目01商铺数据加载及存储/'
+f = open(path+'商铺数据.csv','r',encoding='utf8')
+# print(f,type(f))
+f.seek(0)
+for line in f.readlines()[1:]:
+    n+=1
+    lst1=line.split(',')
+#     print(len(lst1))
+    classify=lst1[0].strip()
+#     print (classify)
+    name=lst1[1].strip()
+#     print (name)
+    co=lst1[2]
+#     print (co)
+    star=lst1[3].strip()
+#     print (star)
+    pr=lst1[4]
+#     print (pr)
+    address=lst1[5].strip()
+#     print (address)
+    com=lst1[6]
+#     print (com)
+    while classify != '' and name!='' and co!='我要点评' and star!='该商户暂无星级' and ('-' not in pr) and address!='' and com!='':
+#         comment=co.split(' ')
+        comment=int(re.sub('\D','',co.strip()))
+#         print (co_1,type(co_1))
+        price=int(re.sub('\D','',pr).strip())
+#         print(price)
+        comlst=com.split('                                ')
+#         print(comlst)
+#         print(len(comlst))
+        quality=float(re.sub('[\u4e00-\u9fa5]','',comlst[0].strip()))
+        envir=float(re.sub('[\u4e00-\u9fa5]','',comlst[1].strip()))
+        ser=float(re.sub('[\u4e00-\u9fa5]','',comlst[2].strip()))
+        data=[['name',name],
+              ['classify',classify],
+              ['comment',comment],
+              ['star',star],
+              ['price',price],
+              ['quality',quality],
+              ['environment',envir],
+              ['service',ser]]
+        m.append(dict(data))
+        j+=1
+#         print(quality,envir,ser)
+        break
+import pickle
+pic=open(path+'商铺数据.pkl','wb')
+pickle.dump(m,pic)
+pic.close()
+# print(m)
+print('数据解析完成!')
+print('一共有%i条数据'%n)
+print('有效数据有%i条'%j)
+        
+fpic=open(path+'商铺数据.pkl','rb') 
+st=pickle.load(fpic)
+print(st)  
+        
